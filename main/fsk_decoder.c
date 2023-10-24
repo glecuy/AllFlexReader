@@ -1,3 +1,27 @@
+/**
+Bit and byte order analysis:
+
+From "HDX Animal Identification protocol description" doc
+
+01111110000101111011101100101011110000010000000101111100000000000000000111100111010010000111111100000
+01111110  -> Header
+
+00010111  -> 11101000
+10111011  -> 11011101
+00101011  -> 11010100
+11000001  -> 10000011
+000000..  -> 0b00000010000011110101001101110111101000 = 2211765736
+......01  -> 10        ->
+01111100  -> 00111110  -> 0b0011111010 = 250
+00000000
+00000001  -> animal application indicator
+11100111
+01001000  -> CRC16
+01111111
+
+************************************************************************/
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -170,7 +194,7 @@ void FSK_DumpBuffer(void){
                 Id64 |= (1ULL<<i);
             pBitBuffer++;
         }
-        printf("Id64 = %llu -- ", Id64 );
+        printf("National code = %llu -- ", Id64 );
 
         // extract Country code
         uint32_t Code = 0UL;

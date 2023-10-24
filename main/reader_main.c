@@ -1,30 +1,14 @@
 /* AllFlex animal tag reader project
 
+    Read Ear tag identification number
+
+    Next step
+    Use ESP32 capability for high level application
+    * WIFI
+    * Bluetooth
+
 */
 
-/**
-
-From "HDX Animal Identification protocol description" doc
-LSB first !
-*
-00001111110000000000000000000000000000
-38 bit (12 digit) National code.
-eg. 000000001008 (decimal), 0b1111110000 (Binary)
-
-6068 => 0b1011110110100 => 00101101111010000000000000000000000000
-5736 => 0b1011001101000 => 00010110011010000000000000000000000000
-
-Country code.
-1110011111
-10 bit (3 digit) Country code.
-eg. 999 (decimal), 0b1111100111 (Binary)
-
-France: 250
-250 => 0b0011111010 => 0101111100
-
-0111111110000101100111110110010101111000001
-
-************************************************************************/
 
 #include <stdio.h>
 #include <string.h>
@@ -113,44 +97,32 @@ static void clockgen_on(int on)
 }
 
 
+/* High level timing:
 
+  <- (100ms) Activation 134.2KHz -><- (20ms) FSK Response demod ->
+  <- (100ms) Decode N-1 response -><- (20ms) Wait ->
+
+**********************************************************************/
 void ActivationTask(void *p) {
     int64_t t0, t;
 
-#if 1
     while(1){
         clockgen_on(1);
-        esp_timer_start_once(activation_timer, 50000);
+        t0 = esp_timer_get_time();
+        esp_timer_start_once(activation_timer, 100000);
 
-        vTaskDelay(80 / portTICK_PERIOD_MS);
+        // Parse and display previous loop data
         FSK_DumpBuffer();
+
+        do{
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+            t = esp_timer_get_time();
+        // Wait for end of tag response
+        } while( (t - t0) < 120000 );
+
+        // loop forever
     }
 
-#else
-    while(1) {
-        clockgen_on(1);
-        vTaskDelay(50 / portTICK_PERIOD_MS);
-        //printf("Clock OFF(%ld)\n", portTICK_PERIOD_MS);
-        clockgen_on(0);
-
-        gpio_set_level(CLOCKGEN_MOD_OUTPUT_IO, 1);
-        //gpio_set_level(FSK_PROBE_OUTPUT_IO, 1);
-        FSK_DecodeEnable();
-
-        vTaskDelay(20 / portTICK_PERIOD_MS);
-
-        FSK_DecodeDisable();
-        gpio_set_level(CLOCKGEN_MOD_OUTPUT_IO, 0);
-
-        //gpio_set_level(FSK_PROBE_OUTPUT_IO, 0);
-        //T = (Period+80) / 160;
-        //if ( T != oldT ){
-        //    printf("freq = %f KHz (%lu)\n", (160000./(double)Period), Period );
-        //    oldT = T;
-        //}
-        //FSK_DumpBuffer();
-    }
-#endif
 }
 
 static void activation_timer_callback(void* arg)
