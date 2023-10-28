@@ -26,7 +26,9 @@
 
 #include "driver/ledc.h"
 
+#include "reader_main.h"
 #include "fsk_decoder.h"
+#include "bt_classic_spp.h"
 
 #define CLOCKGEN_MOD_OUTPUT_IO      (27) // Define the output GPIO
 #define CLOCKGEN_OUTPUT_IO          (25) // Define the output GPIO
@@ -42,6 +44,13 @@ extern volatile uint32_t Period;
 
 esp_timer_handle_t activation_timer;
 esp_timer_handle_t fskdecoding_timer;
+
+/* Callback RX function
+
+*/
+static void bt_classic_RX(const uint8_t *buffer, int size){
+    printf("bt_classic_RX size = %d\n", size);
+}
 
 /* Clock Generator using ledc driver
 
@@ -70,7 +79,7 @@ static void clockgen_setup(void)
     ledc_channel.timer_sel      = LEDC_TIMER_0;
     ledc_channel.intr_type      = LEDC_INTR_DISABLE;
     ledc_channel.gpio_num       = CLOCKGEN_OUTPUT_IO;
-    ledc_channel.duty           = 4, // Set duty cycle
+    ledc_channel.duty           = 8, // Set duty cycle
 
     ledc_channel_config(&ledc_channel);
 
@@ -162,6 +171,30 @@ void TimerSetup( void ){
 }
 
 
+void app_DisplayTagInformation( uint32_t CountryCode, uint64_t Id34 ){
+    char Mess[20];
+
+    //static uint64_t PreviousId;  // Send ID only once
+    //if ( Id34 == PreviousId ){
+    //    return;
+    //}
+    //PreviousId = Id34;
+
+    // Format string
+    snprintf(Mess, 20, "%lu ID:%llu\n", CountryCode, Id34);
+
+    if ( bt_classic_is_paired() ){
+        bool ok = bt_classic_send( (uint8_t *)Mess, strlen(Mess) );
+        if ( !ok ){
+            printf("bt_classic_send failed\n");
+        }
+    }
+    else{
+        printf("Device not paired\n");
+    }
+}
+
+
 void app_main(void)
 {
     // Set the LEDC peripheral configuration
@@ -192,7 +225,9 @@ void app_main(void)
                   1);              // Core 1
 
 
+    bt_classic_setup();
 
+    bt_classic_register_RX_cb( bt_classic_RX );
 
 
 }

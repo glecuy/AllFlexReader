@@ -28,6 +28,13 @@ This project was tested with ear tags only. Only HDX is implemented.
 - GPIO25 : Ouput sigal for tag activation (CLOCKGEN_OUTPUT_IO)
 - GPIO27 : Output signal useful to synchronize logic analyzer (CLOCKGEN_MOD_OUTPUT_IO)
 
+
+### Output
+
+The project uses ESP32 Classic Bluetooth Serial Port Profile (SPP)
+Communication was tested with open source "Bluetooth Terminal" Android application.
+Output could be simply sent to hardware UART (uart1)
+
 ### Configure the project
 
 idf.py menuconfig

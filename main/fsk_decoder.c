@@ -35,6 +35,8 @@ From "HDX Animal Identification protocol description" doc
 #include "freertos/task.h"
 #include "driver/gpio.h"
 
+#include "reader_main.h"
+#include "fsk_decoder.h"
 
 #define FSK_SIGNAL_INPUT_IO      (19) // Define the input for FSK signal
 #define FSK_PROBE_OUTPUT_IO      (21)
@@ -54,6 +56,8 @@ volatile uint8_t FSK_HeaderDetected;
 uint8_t FSK_BitBuffer[FSK_BUFF_SIZE];
 volatile int BitIdx;
 #define FSK_DATA_SIZE   112
+
+char OutBuffer[80];
 
 uint16_t Zeros;
 uint16_t Ones;
@@ -139,8 +143,11 @@ int isHeaderfound( uint8_t *data ){
 
 
 void FSK_DumpBuffer(void){
+    uint64_t Id34;
+    uint32_t CountryCode;
     int i;
-    GPIO_Set(FSK_PROBE_OUTPUT_IO);
+
+    //GPIO_Set(FSK_PROBE_OUTPUT_IO);
     //printf("Period = %lu\n", Period);
     //for ( i=0 ; i<120 ; i++ ){
     //    printf("%u", (unsigned short)FSK_BitBuffer[i] );
@@ -187,23 +194,27 @@ void FSK_DumpBuffer(void){
 
     if ( ValidData ){
         // extract Data fields
-        uint64_t Id64 = 0ULL;
+        Id34 = 0ULL;
         int i;
         for ( i=0 ; i<38 ; i++ ){
             if ( pBitBuffer[0] == 1 )
-                Id64 |= (1ULL<<i);
+                Id34 |= (1ULL<<i);
             pBitBuffer++;
         }
-        printf("National code = %llu -- ", Id64 );
+        printf("National code = %llu -- ", Id34 );
+
+        snprintf(OutBuffer, 80, "%llu\n", Id34 );
 
         // extract Country code
-        uint32_t Code = 0UL;
+        CountryCode = 0UL;
         for ( i=0 ; i<10 ; i++ ){
             if ( pBitBuffer[0] == 1 )
-                Code |= (1UL<<i);
+                CountryCode |= (1UL<<i);
             pBitBuffer++;
         }
-        printf("Country code = %lu\n", Code );
+        printf("Country code = %lu\n", CountryCode );
+        // Send information to user application
+        app_DisplayTagInformation( CountryCode, Id34 );
     }
 
     if ( ValidData == 0 ){
@@ -227,7 +238,7 @@ void FSK_DecoderSetup(void){
 This task runs on core 1 in a long critical section:
 
 ------------------------------------------------------------------*/
-void IRAM_ATTR FskDecoderLoop( void* p) {
+void FskDecoderLoop( void* p) {
 
    printf("Start FSK decoder on Core 1\n");
 
