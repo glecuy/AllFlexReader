@@ -183,7 +183,7 @@ void app_DisplayTagInformation( uint32_t CountryCode, uint64_t Id34 ){
     // Format string
     snprintf(Mess, 20, "%lu ID:%llu\n", CountryCode, Id34);
 
-    if ( bt_classic_is_paired() ){
+    if ( bt_classic_spp_open() ){
         bool ok = bt_classic_send( (uint8_t *)Mess, strlen(Mess) );
         if ( !ok ){
             printf("bt_classic_send failed\n");
